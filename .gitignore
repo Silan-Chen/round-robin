@@ -1,0 +1,23 @@
+# 本地依赖与构建产物
+node_modules/
+dist/
+coverage/
+.nyc_output/
+
+# 日志与操作系统文件
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# 环境变量与凭据（如未来引入）
+.env
+.env.*
+!.env.example
+
+# 本地协作状态与内部过程文档
+.superpowers/
+.learnings/
+docs/superpowers/
+AGENTS.md
+打开循环赛.cmd

@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>本地循环赛</title>
+    <style>
+      :root { --court:#0f6b5c; --ink:#102a43; --chalk:#f7fafc; --line:#cbd5e1; --ball:#f4a340; --red:#c2413a; }
+      * { box-sizing:border-box; }
+      body { margin:0; background:linear-gradient(135deg,#e6f2ef,#f7fafc 45%); color:var(--ink); font-family:"Microsoft YaHei","Noto Sans SC",system-ui,sans-serif; }
+      button,input,select { font:inherit; } button { cursor:pointer; }
+      .shell { max-width:1100px; margin:0 auto; padding:32px 20px 56px; }
+      .masthead { display:flex; justify-content:space-between; align-items:end; gap:16px; border-bottom:4px solid var(--court); padding-bottom:14px; }
+      h1 { margin:0; font-size:clamp(1.8rem,4vw,3rem); letter-spacing:-.06em; } h2 { margin:0; font-size:1.25rem; }
+      .tagline,.hint { color:#486581; margin:6px 0 0; }
+      .primary,.secondary,.text-button { border:0; border-radius:6px; padding:10px 16px; font-weight:700; }
+      .primary { background:var(--court); color:white; } .secondary { background:#dce9e6; color:var(--ink); } .text-button { background:transparent; color:var(--court); padding-inline:0; }
+      .content { margin-top:26px; } .notice { padding:12px 14px; border-left:4px solid var(--ball); background:#fff8e8; margin:16px 0; } .notice-positive { border-left-color:var(--court); background:#e5f3ef; }
+      .error { border-left-color:var(--red); background:#fff2f0; } .error strong { display:block; }
+      .error-modal-backdrop { position:fixed; inset:0; z-index:20; display:grid; place-items:center; padding:20px; background:rgba(16,42,67,.38); } .error-modal,.success-modal { width:min(440px,100%); max-height:calc(100vh - 40px); overflow-y:auto; background:white; border-radius:8px; padding:24px; box-shadow:0 18px 48px rgba(16,42,67,.28); } .error-modal { border:1px solid #e7a39d; } .success-modal { border:1px solid #8bc8bc; } .error-modal h2 { color:#9f2d25; } .success-modal h2 { color:var(--court); } .error-modal p,.success-modal p { margin:10px 0 0; line-height:1.6; } .modal-actions { display:flex; justify-content:center; margin-top:22px; }
+      .guide-backdrop { position:fixed; inset:0; z-index:30; display:grid; place-items:center; padding:20px; background:rgba(16,42,67,.5); } .guide-modal { position:relative; width:min(500px,100%); max-height:calc(100vh - 40px); overflow-y:auto; background:white; border:1px solid #8bc8bc; border-radius:8px; padding:28px; box-shadow:0 20px 52px rgba(16,42,67,.32); } .guide-modal h2 { margin-right:44px; color:var(--court); } .guide-progress { margin:4px 0 16px; color:#486581; font-weight:700; } .guide-modal p { line-height:1.7; } .guide-close { position:absolute; top:14px; right:14px; width:36px; height:36px; border:0; border-radius:50%; background:#dce9e6; color:var(--ink); font-size:1.5rem; line-height:1; } .guide-actions { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:24px; } .guide-actions-end { display:flex; gap:10px; } .guide-skip { background:transparent; border:0; color:#486581; padding:8px 0; } .guide-skip:hover { color:var(--court); } button:focus-visible { outline:3px solid var(--ball); outline-offset:2px; }
+      .history { display:grid; gap:10px; margin-top:16px; } .history-item { width:100%; border:1px solid var(--line); background:white; text-align:left; padding:16px; border-radius:7px; display:flex; justify-content:space-between; gap:18px; }
+      .history-item:hover { border-color:var(--court); } .history-meta { color:#627d98; font-size:.9rem; text-align:right; }
+      .form-panel { max-width:680px; background:white; border:1px solid var(--line); padding:24px; border-radius:8px; }
+      label { display:block; font-weight:700; margin-top:16px; } input { width:100%; margin-top:7px; min-height:42px; border:1px solid #9fb3c8; border-radius:5px; padding:8px 10px; color:var(--ink); }
+      .participant-row { display:grid; grid-template-columns:1fr auto; gap:8px; align-items:end; }
+      .participant-row button { min-height:42px; }
+      .actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:22px; }
+      .empty { padding:34px 0; color:#486581; } .small { font-size:.88rem; color:#627d98; }
+      .matrix-wrap { overflow-x:auto; border:1px solid var(--line); background:white; margin-top:14px; } .matrix { border-collapse:collapse; min-width:680px; width:100%; }
+      .matrix th,.matrix td { border:1px solid var(--line); padding:7px; text-align:center; white-space:nowrap; } .matrix th { background:#edf5f3; } .matrix .self,.matrix .mirror { background:#edf2f7; color:#829ab1; }
+      .match-cell { width:100%; min-height:34px; border:0; border-radius:4px; background:#fdf3dc; color:#7c4a03; font-weight:700; } .match-cell.done { background:#dce9e6; color:#075044; } .match-cell.selected { outline:3px solid var(--ball); }
+      .mobile-match-section { display:none; margin-top:16px; } .mobile-filter-group { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0; } .mobile-filter { border:1px solid var(--line); border-radius:999px; background:white; color:var(--ink); min-height:36px; padding:7px 12px; font-weight:700; } .mobile-filter.selected { border-color:var(--court); background:var(--court); color:white; } .mobile-round { margin-top:16px; } .mobile-round-title { margin:0 0 8px; font-size:1rem; } .mobile-round-title span { color:#486581; font-size:.9rem; font-weight:400; } .mobile-match-list { display:grid; gap:8px; } .mobile-match-card { width:100%; min-height:58px; border:1px solid #f1cd8a; border-radius:7px; background:#fff8e8; color:var(--ink); padding:10px 12px; display:flex; align-items:center; justify-content:space-between; gap:12px; text-align:left; } .mobile-match-card.done { border-color:#8bc8bc; background:#e5f3ef; } .mobile-match-names { overflow-wrap:anywhere; font-weight:700; } .mobile-match-status { flex:0 0 auto; color:#7c4a03; font-weight:700; } .mobile-match-card.done .mobile-match-status { color:#075044; } .mobile-match-empty { padding:18px 14px; border:1px dashed #9fb3c8; border-radius:7px; background:white; color:#486581; }
+      details { margin-top:16px; background:white; border:1px solid var(--line); padding:12px 14px; border-radius:6px; } summary { cursor:pointer; font-weight:700; } .round { padding:10px 0; border-bottom:1px solid #e4edf4; }
+      .score-panel,.standings { margin-top:20px; background:white; border:1px solid var(--line); border-radius:8px; padding:20px; } .score-grid { display:grid; grid-template-columns:1fr 42px 1fr; gap:10px; align-items:end; margin-top:10px; } .score-grid label { margin:0; } .score-grid select { width:100%; margin-top:7px; min-height:42px; border:1px solid #9fb3c8; border-radius:5px; padding:8px 10px; color:var(--ink); background:white; } .score-grid .colon { text-align:center; font-size:1.4rem; font-weight:700; padding-bottom:8px; } .score-actions { justify-content:center; }
+      .standings table { border-collapse:collapse; width:100%; margin-top:10px; } .standings th,.standings td { text-align:left; padding:8px; border-bottom:1px solid #e4edf4; } .provisional { color:#9c5a00; } .tie,.tie-note { color:var(--red); font-weight:700; }
+      @media (max-width:620px) { body { overflow-x:hidden; } .shell { padding:20px 14px 40px; } button,input,select { min-height:44px; } .masthead { align-items:start; flex-direction:column; } .masthead .actions { width:100%; } .masthead .actions button { flex:1 1 132px; } .history-item { flex-direction:column; } .history-meta { text-align:left; } .participant-row { grid-template-columns:1fr; } .participant-row button { width:100%; } .mobile-match-section { display:block; } .mobile-filter { min-height:44px; } .matrix-wrap { display:none; } .guide-modal { padding:24px 20px; } .guide-actions { align-items:stretch; flex-direction:column; } .guide-actions-end { width:100%; } .guide-actions-end button { flex:1; } .score-panel,.standings { padding:16px; } .score-grid { grid-template-columns:1fr; gap:12px; } .score-grid .colon { display:none; } .score-actions .primary { width:100%; } .standings { overflow:hidden; } .standings table { table-layout:fixed; font-size:.88rem; } .standings th,.standings td { padding:7px 4px; overflow-wrap:anywhere; } }
+      @media (max-width:620px) { .mobile-match-section { display:none; } .matrix-wrap { display:block; position:relative; overflow-x:auto; overscroll-behavior-x:contain; -webkit-overflow-scrolling:touch; padding-top:30px; } .matrix-wrap::before { content:'← 左右滑动查看完整表格 →'; position:absolute; top:0; left:0; z-index:4; min-width:100%; height:30px; padding:6px 10px; background:#edf5f3; color:#486581; font-size:.8rem; font-weight:700; text-align:center; white-space:nowrap; } .matrix { min-width:max-content; width:max-content; } .matrix th,.matrix td { min-width:80px; padding:7px; } .matrix th:first-child,.matrix td:first-child { position:sticky; left:0; z-index:2; background:#edf5f3; } .matrix th:first-child { z-index:3; } }
+    </style>
+  </head>
+  <body>
+    <main id="app" aria-live="polite"></main>
+
+    <script data-core>
+      (() => {
+        let idCounter = 0;
+        const storageKey = 'round-robin-demo:v1';
+        const guideSeenStorageKey = 'round-robin-demo:guide-seen:v1';
+
+        function shouldAutoOpenGuide({ hasSeenGuide, tournamentCount } = {}) {
+          return !hasSeenGuide && tournamentCount === 0;
+        }
+
+        function createIssue(code, reason, impact, remedy) {
+          return { code, reason, impact, remedy };
+        }
+
+        function createId(prefix) {
+          if (typeof globalThis.crypto?.randomUUID === 'function') {
+            return `${prefix}-${globalThis.crypto.randomUUID()}`;
+          }
+
+          idCounter += 1;
+          return `${prefix}-${Date.now()}-${idCounter}`;
+        }
+
+        function validateTournamentInput(input) {
+          const name = typeof input?.name === 'string' ? input.name.trim() : '';
+          const participantNames = Array.isArray(input?.participantNames)
+            ? input.participantNames.map((participantName) =>
+                typeof participantName === 'string' ? participantName.trim() : '',
+              )
+            : [];
+
+          if (!name) {
+            return {
+              ok: false,
+              issue: createIssue(
+                'tournament-name-empty',
+                '比赛名称不能为空。',
+                '无法创建比赛。',
+                '请填写比赛名称后再开始。',
+              ),
+            };
+          }
+
+          if (participantNames.length < 3) {
+            const missingCount = 3 - participantNames.length;
+            return {
+              ok: false,
+              issue: createIssue(
+                'participant-count-too-small',
+                `当前只有 ${participantNames.length} 名参赛者，循环赛至少需要 3 人。`,
+                '无法开始比赛。',
+                `请再添加 ${missingCount} 名参赛者。`,
+              ),
+            };
+          }
+
+          if (participantNames.length > 16) {
+            return {
+              ok: false,
+              issue: createIssue(
+                'participant-count-too-large',
+                `当前有 ${participantNames.length} 名参赛者，本 Demo 最多支持 16 人。`,
+                '无法开始比赛。',
+                '请删除多余成员后再开始。',
+              ),
+            };
+          }
+
+          const blankIndex = participantNames.findIndex((participantName) => !participantName);
+          if (blankIndex !== -1) {
+            return {
+              ok: false,
+              issue: createIssue(
+                'participant-name-empty',
+                `第 ${blankIndex + 1} 位参赛者没有姓名。`,
+                '无法开始比赛。',
+                '请填写姓名，或删除这一空白项。',
+              ),
+            };
+          }
+
+          const duplicateName = participantNames.find(
+            (participantName, index) => participantNames.indexOf(participantName) !== index,
+          );
+          if (duplicateName) {
+            return {
+              ok: false,
+              issue: createIssue(
+                'participant-name-duplicate',
+                `${duplicateName}出现了两次。`,
+                '无法开始比赛。',
+                `请为重复姓名补充区分信息，例如“${duplicateName}（A队）”。`,
+              ),
+            };
+          }
+
+          return { ok: true, value: { name, participantNames } };
+        }
+
+        function createTournament(input, now = new Date().toISOString()) {
+          const validation = validateTournamentInput(input);
+          if (!validation.ok) {
+            throw new Error(validation.issue.reason);
+          }
+
+          return {
+            id: createId('tournament'),
+            name: validation.value.name,
+            createdAt: now,
+            updatedAt: now,
+            participants: validation.value.participantNames.map((participantName, order) => ({
+              id: createId('participant'),
+              name: participantName,
+              order,
+            })),
+            results: [],
+          };
+        }
+
+        function normalizeMatchKey(idA, idB) {
+          return [idA, idB].sort().join('::');
+        }
+
+        function listPairings(participants) {
+          const pairings = [];
+          for (let firstIndex = 0; firstIndex < participants.length; firstIndex += 1) {
+            for (
+              let secondIndex = firstIndex + 1;
+              secondIndex < participants.length;
+              secondIndex += 1
+            ) {
+              const participantA = participants[firstIndex];
+              const participantB = participants[secondIndex];
+              pairings.push({
+                key: normalizeMatchKey(participantA.id, participantB.id),
+                participantAId: participantA.id,
+                participantBId: participantB.id,
+              });
+            }
+          }
+          return pairings;
+        }
+
+        function buildRecommendedRounds(participants) {
+          const bye = { id: '__bye__' };
+          let rotation = [...participants];
+          if (rotation.length % 2 === 1) rotation.push(bye);
+
+          const rounds = [];
+          const participantCount = rotation.length;
+          for (let roundIndex = 0; roundIndex < participantCount - 1; roundIndex += 1) {
+            const matches = [];
+            let byeParticipantId;
+            for (let pairIndex = 0; pairIndex < participantCount / 2; pairIndex += 1) {
+              const participantA = rotation[pairIndex];
+              const participantB = rotation[participantCount - 1 - pairIndex];
+              if (participantA.id === bye.id) {
+                byeParticipantId = participantB.id;
+              } else if (participantB.id === bye.id) {
+                byeParticipantId = participantA.id;
+              } else {
+                matches.push({
+                  key: normalizeMatchKey(participantA.id, participantB.id),
+                  participantAId: participantA.id,
+                  participantBId: participantB.id,
+                });
+              }
+            }
+
+            rounds.push({
+              roundNumber: roundIndex + 1,
+              matches,
+              ...(byeParticipantId ? { byeParticipantId } : {}),
+            });
+
+            rotation = [rotation[0], rotation.at(-1), ...rotation.slice(1, -1)];
+          }
+
+          return rounds;
+        }
+
+        function invalidStorageIssue() {
+          return createIssue(
+            'storage-data-invalid',
+            '本机保存的数据不完整，无法安全读取这场比赛。',
+            '为避免继续写入造成更多问题，系统没有修改原数据。',
+            '请返回首页查看其他比赛。',
+          );
+        }
+
+        function readTournamentStore(storage) {
+          try {
+            const raw = storage.getItem(storageKey);
+            if (raw === null) return { ok: true, tournaments: [] };
+            const tournaments = JSON.parse(raw);
+            if (!Array.isArray(tournaments)) return { ok: false, issue: invalidStorageIssue() };
+            return { ok: true, tournaments };
+          } catch {
+            return { ok: false, issue: invalidStorageIssue() };
+          }
+        }
+
+        function writeTournamentStore(storage, tournaments) {
+          try {
+            storage.setItem(storageKey, JSON.stringify(tournaments));
+            return { ok: true };
+          } catch {
+            return {
+              ok: false,
+              issue: createIssue(
+                'storage-write-failed',
+                '无法保存到本机：浏览器存储空间不足或已被禁用。',
+                '关闭页面后，本次修改可能会丢失。',
+                '请允许本地存储，或清理浏览器空间后再操作。',
+              ),
+            };
+          }
+        }
+
+        function copyTournament(tournament) {
+          return {
+            ...tournament,
+            participants: tournament.participants.map((participant) => ({ ...participant })),
+            results: tournament.results.map((result) => ({ ...result })),
+          };
+        }
+
+        function saveResult(tournament, input, now = new Date().toISOString()) {
+          const participantAId = input?.participantAId;
+          const participantBId = input?.participantBId;
+          const scoreA = Number(input?.scoreA);
+          const scoreB = Number(input?.scoreB);
+          const participantIds = new Set(tournament.participants.map(({ id }) => id));
+          if (!participantAId || !participantBId || !participantIds.has(participantAId) || !participantIds.has(participantBId)) {
+            return { ok: false, issue: createIssue('participant-not-selected', '请选择两位有效的参赛者。', '无法保存赛果。', '请从姓名方块中各选择一位选手。') };
+          }
+          if (participantAId === participantBId) {
+            return { ok: false, issue: createIssue('same-participant', '一场比赛需要两位不同的参赛者。', '无法保存赛果。', '请更换右侧选手。') };
+          }
+          if (!Number.isInteger(scoreA) || !Number.isInteger(scoreB) || scoreA < 0 || scoreA > 99 || scoreB < 0 || scoreB > 99) {
+            return { ok: false, issue: createIssue('score-invalid', '比赛大比分只能填写 0 到 99 的整数，例如 3:1。', '无法保存赛果。', '请检查两个大比分框。') };
+          }
+          if (scoreA === scoreB) {
+            return { ok: false, issue: createIssue('score-tied', '循环赛必须产生胜者，双方大比分不能相同。', '无法保存赛果。', '请填写不同的比分。') };
+          }
+          const key = normalizeMatchKey(participantAId, participantBId);
+          if (tournament.results.some((result) => normalizeMatchKey(result.participantAId, result.participantBId) === key)) {
+            return { ok: false, issue: createIssue('match-already-complete', '这两位选手已有赛果。', '无法再次新增同一场成绩。', '请在循环赛表格中打开该场比赛，先清除原成绩后再重新录入。') };
+          }
+          const next = copyTournament(tournament);
+          next.results.push({ participantAId, participantBId, scoreA, scoreB, updatedAt: now });
+          next.updatedAt = now;
+          return { ok: true, tournament: next };
+        }
+
+        function clearResult(tournament, participantAId, participantBId, now = new Date().toISOString()) {
+          const key = normalizeMatchKey(participantAId, participantBId);
+          const existing = tournament.results.find((result) => normalizeMatchKey(result.participantAId, result.participantBId) === key);
+          if (!existing) return { ok: false, issue: createIssue('match-not-found', '没有找到这场已保存的比赛成绩。', '没有数据被修改。', '请返回循环赛表格后重新选择该场比赛。') };
+          const next = copyTournament(tournament);
+          next.results = next.results.filter((result) => normalizeMatchKey(result.participantAId, result.participantBId) !== key);
+          next.updatedAt = now;
+          return { ok: true, tournament: next, clearedResult: existing };
+        }
+
+        function addParticipant(tournament, rawName, now = new Date().toISOString()) {
+          const name = typeof rawName === 'string' ? rawName.trim() : '';
+          if (!name) return { ok: false, issue: createIssue('participant-name-empty', '新增成员没有姓名。', '无法增加成员。', '请填写姓名后再保存。') };
+          if (tournament.participants.some((participant) => participant.name === name)) return { ok: false, issue: createIssue('participant-name-duplicate', `${name}出现了两次。`, '无法增加成员。', '请为重复姓名补充区分信息后再保存。') };
+          if (tournament.participants.length >= 16) return { ok: false, issue: createIssue('participant-count-too-large', '当前已有 16 名参赛者。', '无法增加成员。', '本 Demo 最多支持 16 人，请先删除成员。') };
+          const next = copyTournament(tournament);
+          next.participants.push({ id: createId('participant'), name, order: next.participants.length });
+          next.updatedAt = now;
+          return { ok: true, tournament: next };
+        }
+
+        function removeParticipant(tournament, participantId, now = new Date().toISOString()) {
+          const participant = tournament.participants.find(({ id }) => id === participantId);
+          if (!participant) return { ok: false, issue: createIssue('participant-not-found', '没有找到要删除的成员。', '没有数据被修改。', '请返回成员列表后重新选择。') };
+          const next = copyTournament(tournament);
+          next.participants = next.participants.filter(({ id }) => id !== participantId).map((entry, order) => ({ ...entry, order }));
+          next.results = next.results.filter((result) => result.participantAId !== participantId && result.participantBId !== participantId);
+          next.updatedAt = now;
+          return { ok: true, tournament: next };
+        }
+
+        function calculateStandings(tournament) {
+          const stats = new Map(tournament.participants.map((participant) => [participant.id, { participant, wins: 0, losses: 0, played: 0 }]));
+          for (const result of tournament.results) {
+            const a = stats.get(result.participantAId); const b = stats.get(result.participantBId);
+            if (!a || !b) continue;
+            a.played += 1; b.played += 1;
+            if (result.scoreA > result.scoreB) { a.wins += 1; b.losses += 1; } else { b.wins += 1; a.losses += 1; }
+          }
+          const groups = [...stats.values()].sort((a, b) => b.wins - a.wins || a.participant.name.localeCompare(b.participant.name, 'zh-CN')).reduce((all, entry) => {
+            const group = all.find((candidate) => candidate[0].wins === entry.wins); if (group) group.push(entry); else all.push([entry]); return all;
+          }, []);
+          const rows = []; let nextRank = 1;
+          for (const group of groups) {
+            const miniWins = new Map(group.map((entry) => [entry.participant.id, 0]));
+            const groupIds = new Set(group.map((entry) => entry.participant.id));
+            const needed = (group.length * (group.length - 1)) / 2;
+            const miniResults = tournament.results.filter((result) => groupIds.has(result.participantAId) && groupIds.has(result.participantBId));
+            if (group.length > 1 && miniResults.length === needed) for (const result of miniResults) miniWins.set(result.scoreA > result.scoreB ? result.participantAId : result.participantBId, miniWins.get(result.scoreA > result.scoreB ? result.participantAId : result.participantBId) + 1);
+            const ordered = [...group].sort((a, b) => (miniResults.length === needed ? miniWins.get(b.participant.id) - miniWins.get(a.participant.id) : 0) || a.participant.name.localeCompare(b.participant.name, 'zh-CN'));
+            const miniWinCounts = new Map();
+            const rankByMiniWins = new Map();
+            if (miniResults.length === needed) ordered.forEach((entry, index) => {
+              const wins = miniWins.get(entry.participant.id);
+              miniWinCounts.set(wins, (miniWinCounts.get(wins) || 0) + 1);
+              if (!rankByMiniWins.has(wins)) rankByMiniWins.set(wins, nextRank + index);
+            });
+            for (let index = 0; index < ordered.length; index += 1) {
+              const entry = ordered[index];
+              const wins = miniWins.get(entry.participant.id);
+              const isUnresolvedTie = group.length > 1 && (miniResults.length !== needed || miniWinCounts.get(wins) > 1);
+              rows.push({ rank: miniResults.length === needed ? rankByMiniWins.get(wins) : nextRank, participantId: entry.participant.id, name: entry.participant.name, wins: entry.wins, losses: entry.losses, played: entry.played, isUnresolvedTie });
+            }
+            nextRank += group.length;
+          }
+          const totalMatches = listPairings(tournament.participants).length;
+          return { rows, isFinal: tournament.results.length === totalMatches && tournament.participants.length >= 3, totalMatches, completedMatches: tournament.results.length };
+        }
+
+        function getFinalStandingsNote(standings) {
+          if (!standings?.isFinal || !standings.rows.some((row) => row.isUnresolvedTie)) return null;
+          return '红色选手表示并列。并列原因：这些选手总胜场相同，且相互交手的小循环胜场也相同，当前规则无法继续区分名次。';
+        }
+
+        globalThis.__TournamentCore = {
+          validateTournamentInput,
+          createTournament,
+          normalizeMatchKey,
+          listPairings,
+          buildRecommendedRounds,
+          readTournamentStore,
+          writeTournamentStore,
+          saveResult,
+          clearResult,
+          addParticipant,
+          removeParticipant,
+          calculateStandings,
+          getFinalStandingsNote,
+          storageKey,
+          guideSeenStorageKey,
+          shouldAutoOpenGuide,
+        };
+      })();
+    </script>
+    <script>
+      (() => {
+        const core = globalThis.__TournamentCore;
+        const app = document.querySelector('#app');
+        const state = { tournaments: [], view: 'home', currentId: null, createNames: ['', '', ''], message: null, selectedPair: [], mobileMatchFilter: 'all', guideOpen: false, guideStep: 0, guideSeen: false };
+        const guideSteps = [
+          { title: '欢迎使用', text: '这是一个帮助用户登记循环赛比分的小型 Demo，希望大家使用愉快。' },
+          { title: '创建一场比赛', text: '点击“新建比赛”，填写比赛名称和 3 到 16 位参赛者姓名。' },
+          { title: '选择要录入的对阵', text: '点击循环赛表格中的“待录入”，或在下方录分区选择两位尚未交手的选手。' },
+          { title: '填写双方比赛大比分', text: '填写双方大比分，双方不能打平；再点击“保存本场比赛结果”，表格和排名会立即刷新。' },
+          { title: '查看排名与保存位置', text: '胜场多者在前；红色表示并列，说明小循环仍无法区分名次。比赛只保存在当前浏览器。' },
+        ];
+
+        function escapeHtml(value) {
+          return String(value).replace(/[&<>'"]/g, (character) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' })[character]);
+        }
+
+        function formatDate(iso) {
+          return new Intl.DateTimeFormat('zh-CN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso));
+        }
+
+        function getProgress(tournament) {
+          return { completed: tournament.results.length, total: core.listPairings(tournament.participants).length };
+        }
+
+        function formatResultScore(result, participantAId) {
+          return result.participantAId === participantAId
+            ? `${result.scoreA}:${result.scoreB}`
+            : `${result.scoreB}:${result.scoreA}`;
+        }
+
+        function getMobileMatchItems(tournament, filter = 'all') {
+          const resultsByKey = new Map(tournament.results.map((result) => [
+            core.normalizeMatchKey(result.participantAId, result.participantBId),
+            result,
+          ]));
+          return core.buildRecommendedRounds(tournament.participants).flatMap((round) => round.matches.map((pair) => ({
+            roundNumber: round.roundNumber,
+            pair,
+            result: resultsByKey.get(pair.key),
+            byeParticipantId: round.byeParticipantId,
+          }))).filter((item) => (
+            filter === 'all'
+            || (filter === 'pending' && !item.result)
+            || (filter === 'completed' && item.result)
+          ));
+        }
+
+        function renderMobileMatchList(tournament, byId, filter = 'all') {
+          const items = getMobileMatchItems(tournament, filter);
+          if (!items.length) {
+            const emptyText = filter === 'completed' ? '还没有已完成的比赛。' : '没有待录入的比赛。';
+            return `<p class="mobile-match-empty">${emptyText}</p>`;
+          }
+
+          const rounds = new Map();
+          items.forEach((item) => {
+            if (!rounds.has(item.roundNumber)) rounds.set(item.roundNumber, { byeParticipantId: item.byeParticipantId, items: [] });
+            rounds.get(item.roundNumber).items.push(item);
+          });
+          return [...rounds.entries()].map(([roundNumber, round]) => {
+            const byeName = round.byeParticipantId ? escapeHtml(byId.get(round.byeParticipantId).name) : '';
+            const cards = round.items.map(({ pair, result }) => {
+              const participantA = byId.get(pair.participantAId);
+              const participantB = byId.get(pair.participantBId);
+              const score = result ? formatResultScore(result, pair.participantAId) : '待录入';
+              return `<button class="mobile-match-card${result ? ' done' : ''}" type="button" data-pair="${pair.participantAId}::${pair.participantBId}" ${result ? 'data-complete="true"' : ''}><span class="mobile-match-names">${escapeHtml(participantA.name)} <span aria-hidden="true">vs</span> ${escapeHtml(participantB.name)}</span><span class="mobile-match-status">${score}</span></button>`;
+            }).join('');
+            return `<section class="mobile-round"><h3 class="mobile-round-title">第 ${roundNumber} 轮${byeName ? ` <span>${byeName} 轮空</span>` : ''}</h3><div class="mobile-match-list">${cards}</div></section>`;
+          }).join('');
+        }
+
+        globalThis.__TournamentUi = { formatResultScore, getMobileMatchItems, renderMobileMatchList, renderTournament, state };
+
+        function saveAll() {
+          const result = core.writeTournamentStore(localStorage, state.tournaments);
+          if (!result.ok) state.message = { type: 'error', issue: result.issue };
+          return result.ok;
+        }
+
+        function messageMarkup() {
+          if (!state.message) return '';
+          if (state.message.type === 'completion') return `<div class="error-modal-backdrop" data-dismiss-message><section class="success-modal" role="alertdialog" aria-modal="true" aria-labelledby="completion-title"><h2 id="completion-title">比赛已完成</h2><p>${escapeHtml(state.message.text)}</p><div class="modal-actions"><button class="primary" type="button" data-dismiss-message>知道了</button></div></section></div>`;
+          if (state.message.type === 'success') return `<div class="notice notice-positive">${escapeHtml(state.message.text)}</div>`;
+          const { issue } = state.message;
+          return `<div class="error-modal-backdrop" data-dismiss-message><section class="error-modal" role="alertdialog" aria-modal="true" aria-labelledby="error-title"><h2 id="error-title">无法继续操作</h2><p><strong>${escapeHtml(issue.reason)}</strong></p><p>${escapeHtml(issue.impact)} ${escapeHtml(issue.remedy)}</p><div class="modal-actions"><button class="primary" type="button" data-dismiss-message>知道了</button></div></section></div>`;
+        }
+
+        function guideMarkup() {
+          if (!state.guideOpen) return '';
+          const step = guideSteps[state.guideStep];
+          const isLast = state.guideStep === guideSteps.length - 1;
+          return `<div class="guide-backdrop" data-dismiss-guide><section class="guide-modal" role="dialog" aria-modal="true" aria-labelledby="guide-title"><button class="guide-close" type="button" aria-label="关闭新手指引" data-dismiss-guide>×</button><p class="guide-progress">${state.guideStep + 1} / ${guideSteps.length}</p><h2 id="guide-title">3 分钟了解如何使用</h2><h3>${escapeHtml(step.title)}</h3><p>${escapeHtml(step.text)}</p><div class="guide-actions"><button class="guide-skip" type="button" data-dismiss-guide>跳过指引</button><div class="guide-actions-end"><button class="secondary" type="button" data-guide-prev ${state.guideStep === 0 ? 'disabled' : ''}>上一步</button><button class="primary" type="button" data-guide-next>${isLast ? '开始使用' : '下一步'}</button></div></div></section></div>`;
+        }
+
+        function rememberGuideSeen() {
+          if (state.guideSeen) return;
+          state.guideSeen = true;
+          try { localStorage.setItem(core.guideSeenStorageKey, 'true'); } catch { /* 本次会话仍可正常关闭指引 */ }
+        }
+
+        function openGuide() {
+          state.guideStep = 0;
+          state.guideOpen = true;
+          renderGuideOverlay();
+        }
+
+        function closeGuide() {
+          state.guideOpen = false;
+          rememberGuideSeen();
+          renderGuideOverlay();
+        }
+
+        function dismissMessage() {
+          state.message = null;
+          render();
+        }
+
+        function bindMessageDismissal() {
+          document.querySelectorAll('[data-dismiss-message]').forEach((element) => element.addEventListener('click', (event) => {
+            if (event.currentTarget === event.target || event.currentTarget.tagName === 'BUTTON') dismissMessage();
+          }));
+        }
+
+        function bindGuideOverlayControls() {
+          document.querySelectorAll('[data-dismiss-guide]').forEach((element) => element.addEventListener('click', (event) => {
+            if (event.currentTarget === event.target || event.currentTarget.tagName === 'BUTTON') closeGuide();
+          }));
+          document.querySelectorAll('[data-guide-prev]').forEach((button) => button.addEventListener('click', () => { if (state.guideStep > 0) { state.guideStep -= 1; renderGuideOverlay(); } }));
+          document.querySelectorAll('[data-guide-next]').forEach((button) => button.addEventListener('click', () => { if (state.guideStep < guideSteps.length - 1) { state.guideStep += 1; renderGuideOverlay(); } else closeGuide(); }));
+        }
+
+        function bindGuideControls() {
+          document.querySelectorAll('[data-open-guide]').forEach((button) => button.addEventListener('click', openGuide));
+          bindGuideOverlayControls();
+        }
+
+        function renderGuideOverlay() {
+          const root = document.querySelector('#guide-root');
+          if (!root) return;
+          root.innerHTML = guideMarkup();
+          bindGuideOverlayControls();
+        }
+
+        function renderHome() {
+          const histories = [...state.tournaments].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+          const historyMarkup = histories.length ? histories.map((tournament) => {
+            const progress = getProgress(tournament);
+            const status = progress.completed === progress.total ? '已结束' : '进行中';
+            return `<button class="history-item" data-open="${escapeHtml(tournament.id)}"><span><strong>${escapeHtml(tournament.name)}</strong><br><span class="small">${formatDate(tournament.createdAt)}</span></span><span class="history-meta">${tournament.participants.length} 人 · ${progress.completed}/${progress.total} 场<br>${status}</span></button>`;
+          }).join('') : '<p class="empty">还没有比赛。新建一场比赛后，历史记录会保存在这台电脑的当前浏览器中。</p>';
+          app.innerHTML = `<div class="shell"><header class="masthead"><div><h1>循环赛记分</h1><p class="tagline">一台电脑，专心把比赛打完。</p></div><div class="actions"><button class="secondary" type="button" data-open-guide>新手指引</button><button class="primary" id="create-button">新建比赛</button></div></header><section class="content">${messageMarkup()}<div class="notice notice-positive"><strong>本地保存</strong><br>历史比赛只保存在当前浏览器；清除浏览器数据后无法恢复。</div><h2>历史比赛</h2><div class="history">${historyMarkup}</div></section><div id="guide-root">${guideMarkup()}</div></div>`;
+          document.querySelector('#create-button').addEventListener('click', () => { state.message = null; state.view = 'create'; render(); });
+          document.querySelectorAll('[data-open]').forEach((button) => button.addEventListener('click', () => { state.currentId = button.dataset.open; state.mobileMatchFilter = 'all'; state.view = 'tournament'; state.message = null; render(); }));
+        }
+
+        function renderCreate() {
+          const nameRows = state.createNames.map((name, index) => `<div class="participant-row"><label>参赛者 ${index + 1}<input data-name-index="${index}" value="${escapeHtml(name)}" placeholder="填写姓名" /></label>${state.createNames.length > 3 ? `<button class="secondary" data-remove-name="${index}">删除</button>` : '<span></span>'}</div>`).join('');
+          app.innerHTML = `<div class="shell"><header class="masthead"><div><h1>新建比赛</h1><p class="tagline">填好名字，就可以开始循环赛。</p></div><div class="actions"><button class="secondary" type="button" data-open-guide>新手指引</button><button class="secondary" id="home-button">返回首页</button></div></header><section class="content"><div class="form-panel">${messageMarkup()}<label>比赛名称<input id="tournament-name" placeholder="例如：周末乒乓球循环赛" /></label><div id="participant-list">${nameRows}</div><div class="actions"><button class="text-button" id="add-name">增加一位参赛者</button></div><p class="small">支持 3–16 人。可在姓名框中粘贴名单，每行会自动成为一位参赛者。</p><div class="actions"><button class="primary" id="start-button">开始比赛</button></div></div></section><div id="guide-root">${guideMarkup()}</div></div>`;
+          document.querySelector('#home-button').addEventListener('click', () => { state.view = 'home'; state.message = null; render(); });
+          document.querySelector('#add-name').addEventListener('click', () => { if (state.createNames.length < 16) { state.createNames.push(''); render(); } });
+          document.querySelectorAll('[data-remove-name]').forEach((button) => button.addEventListener('click', () => { state.createNames.splice(Number(button.dataset.removeName), 1); render(); }));
+          document.querySelectorAll('[data-name-index]').forEach((input) => input.addEventListener('input', () => { state.createNames[Number(input.dataset.nameIndex)] = input.value; }));
+          document.querySelectorAll('[data-name-index]').forEach((input) => input.addEventListener('paste', (event) => {
+            const pastedNames = event.clipboardData.getData('text').split(/\r?\n/).map((value) => value.trim()).filter(Boolean);
+            if (pastedNames.length > 1) { event.preventDefault(); state.createNames = pastedNames; render(); }
+          }));
+          document.querySelector('#start-button').addEventListener('click', () => {
+            const name = document.querySelector('#tournament-name').value;
+            const validation = core.validateTournamentInput({ name, participantNames: state.createNames });
+            if (!validation.ok) { state.message = { type: 'error', issue: validation.issue }; render(); return; }
+            const tournament = core.createTournament({ name, participantNames: state.createNames });
+            state.tournaments.push(tournament);
+            if (!saveAll()) { state.tournaments.pop(); render(); return; }
+            state.currentId = tournament.id; state.mobileMatchFilter = 'all'; state.view = 'tournament'; state.message = null; render();
+          });
+        }
+
+        function renderTournament() {
+          const tournament = state.tournaments.find(({ id }) => id === state.currentId);
+          if (!tournament) { state.view = 'home'; render(); return; }
+          const progress = getProgress(tournament);
+          const participants = tournament.participants;
+          const byId = new Map(participants.map((participant) => [participant.id, participant]));
+          const findResult = (a, b) => tournament.results.find((result) => core.normalizeMatchKey(result.participantAId, result.participantBId) === core.normalizeMatchKey(a, b));
+          const matrixRows = participants.map((row, rowIndex) => `<tr><th>${escapeHtml(row.name)}</th>${participants.map((column, columnIndex) => {
+            if (rowIndex === columnIndex) return '<td class="self">—</td>';
+            const result = findResult(row.id, column.id);
+            const isUpper = rowIndex < columnIndex;
+            if (!isUpper) return `<td class="mirror">${result ? `${result.participantAId === row.id ? result.scoreA : result.scoreB}:${result.participantAId === row.id ? result.scoreB : result.scoreA}` : ''}</td>`;
+            const score = result ? `${result.participantAId === row.id ? result.scoreA : result.scoreB}:${result.participantAId === row.id ? result.scoreB : result.scoreA}` : '待录入';
+            const selected = state.selectedPair.join('::') === [row.id, column.id].join('::') ? ' selected' : '';
+            return `<td><button class="match-cell${result ? ' done' : ''}${selected}" data-pair="${row.id}::${column.id}" ${result ? 'data-complete="true"' : ''}>${score}</button></td>`;
+          }).join('')}</tr>`).join('');
+          const chosenA = state.selectedPair[0] || '';
+          const chosenB = state.selectedPair[1] || '';
+          const optionA = `<option value="">点击选择选手</option>${participants.map((participant) => `<option value="${participant.id}" ${participant.id === chosenA ? 'selected' : ''}>${escapeHtml(participant.name)}</option>`).join('')}`;
+          const optionB = `<option value="">点击选择选手</option>${participants.filter((participant) => participant.id !== chosenA && (!chosenA || !findResult(chosenA, participant.id))).map((participant) => `<option value="${participant.id}" ${participant.id === chosenB ? 'selected' : ''}>${escapeHtml(participant.name)}</option>`).join('')}`;
+          const rounds = core.buildRecommendedRounds(participants).map((round) => `<div class="round"><strong>第 ${round.roundNumber} 轮</strong><br>${round.matches.map((match) => `${escapeHtml(byId.get(match.participantAId).name)} vs ${escapeHtml(byId.get(match.participantBId).name)}`).join('；')}${round.byeParticipantId ? `；${escapeHtml(byId.get(round.byeParticipantId).name)} 轮空` : ''}</div>`).join('');
+          const mobileFilters = [['all', '全部'], ['pending', '待录入'], ['completed', '已完成']].map(([value, label]) => `<button class="mobile-filter${state.mobileMatchFilter === value ? ' selected' : ''}" type="button" data-mobile-filter="${value}" aria-pressed="${state.mobileMatchFilter === value}">${label}</button>`).join('');
+          const mobileMatches = renderMobileMatchList(tournament, byId, state.mobileMatchFilter);
+          const standings = core.calculateStandings(tournament);
+          const finalStandingsNote = core.getFinalStandingsNote(standings);
+          const standingRows = standings.rows.map((row) => `<tr class="${row.isUnresolvedTie ? 'tie' : ''}"><td>${row.rank}</td><td>${escapeHtml(row.name)}</td><td>${row.wins}</td><td>${row.losses}</td><td>${row.played}</td></tr>`).join('');
+          app.innerHTML = `<div class="shell"><header class="masthead"><div><h1>${escapeHtml(tournament.name)}</h1><p class="tagline">已完成 ${progress.completed} / ${progress.total} 场</p></div><div class="actions"><button class="secondary" type="button" data-open-guide>新手指引</button><button class="secondary" id="add-member">增加成员</button><button class="secondary" id="remove-member">删除成员</button><button class="secondary" id="home-button">返回首页</button></div></header><section class="content">${messageMarkup()}<section class="mobile-match-section"><h2>比赛对阵</h2><div class="mobile-filter-group" aria-label="比赛筛选">${mobileFilters}</div>${mobileMatches}</section><h2>循环赛表格</h2><div class="matrix-wrap"><table class="matrix"><tr><th></th>${participants.map((participant) => `<th>${escapeHtml(participant.name)}</th>`).join('')}</tr>${matrixRows}</table></div><details><summary>展开可查看推荐赛程</summary>${rounds}</details><section class="score-panel"><h2>录入双方比赛大比分</h2><p class="hint">填写双方比赛大比分，双方大比分不能相同。</p><div class="score-grid"><label>选手 A<select id="score-a">${optionA}</select></label><div class="colon">:</div><label>选手 B<select id="score-b">${optionB}</select></label><label>选手 A 的比赛大比分<input id="score-a-value" inputmode="numeric" placeholder="3" /></label><div class="colon">:</div><label>选手 B 的比赛大比分<input id="score-b-value" inputmode="numeric" placeholder="1" /></label></div><div class="actions score-actions"><button class="primary" id="save-score">保存本场比赛结果</button></div></section><section class="standings"><h2>${standings.isFinal ? '最终排名' : '实时排名'}</h2><p class="${standings.isFinal ? '' : 'provisional'}">${standings.isFinal ? `全部对阵已完成。${finalStandingsNote ? ` <span class="tie-note">${escapeHtml(finalStandingsNote)}</span>` : ''}` : '当前为临时排名；其他比赛的结果可能影响名次。'}</p><table><tr><th>名次</th><th>姓名</th><th>胜场</th><th>负场</th><th>已赛</th></tr>${standingRows}</table></section></section><div id="guide-root">${guideMarkup()}</div></div>`;
+          document.querySelector('#home-button').addEventListener('click', () => { state.view = 'home'; render(); });
+          document.querySelectorAll('[data-mobile-filter]').forEach((button) => button.addEventListener('click', () => { state.mobileMatchFilter = button.dataset.mobileFilter; render(); }));
+          document.querySelectorAll('[data-pair]').forEach((button) => button.addEventListener('click', () => { const [a, b] = button.dataset.pair.split('::'); if (button.dataset.complete) { const result = findResult(a, b); if (confirm(`确认清除${byId.get(a).name} vs ${byId.get(b).name}的 ${formatResultScore(result, a)} 吗？清除后双方胜负场和当前排名会重新计算。`)) { const cleared = core.clearResult(tournament, a, b); replaceTournament(cleared.tournament); state.message = { type: 'success', text: '成绩已清除，排名已重新计算。' }; render(); } } else { state.selectedPair = [a, b]; render(); } }));
+          document.querySelector('#score-a').addEventListener('change', (event) => { state.selectedPair = [event.target.value, '']; render(); });
+          document.querySelector('#score-b').addEventListener('change', (event) => { state.selectedPair[1] = event.target.value; });
+          document.querySelector('#save-score').addEventListener('click', () => { if (progress.completed === progress.total) { state.message = { type: 'completion', text: '所有比赛结果已经录入，可下滑查看比赛排名。' }; render(); return; } const result = core.saveResult(tournament, { participantAId: document.querySelector('#score-a').value, participantBId: document.querySelector('#score-b').value, scoreA: document.querySelector('#score-a-value').value, scoreB: document.querySelector('#score-b-value').value }); if (!result.ok) { state.message = { type: 'error', issue: result.issue }; render(); return; } replaceTournament(result.tournament); state.selectedPair = []; state.message = { type: 'success', text: '赛果已保存，排名已更新。' }; render(); });
+          document.querySelector('#add-member').addEventListener('click', () => { const name = prompt('请输入新增成员姓名：'); if (name === null) return; const result = core.addParticipant(tournament, name); if (!result.ok) { state.message = { type: 'error', issue: result.issue }; render(); return; } replaceTournament(result.tournament); state.message = { type: 'success', text: '成员已增加，新的对阵已加入表格。' }; render(); });
+          document.querySelector('#remove-member').addEventListener('click', () => { const name = prompt(`请输入要删除的成员姓名：\n${participants.map(({ name: participantName }) => participantName).join('、')}`); const participant = participants.find((entry) => entry.name === name); if (!participant) return; if (confirm('删除成员后，与该成员相关的所有成绩会跟着清除，是否确认？')) { const result = core.removeParticipant(tournament, participant.id); replaceTournament(result.tournament); state.message = { type: 'success', text: '成员已删除，相关成绩已清除。' }; render(); } });
+        }
+
+        function replaceTournament(tournament) { state.tournaments = state.tournaments.map((entry) => entry.id === tournament.id ? tournament : entry); saveAll(); }
+
+        function render() { if (state.view === 'create') renderCreate(); else if (state.view === 'tournament') renderTournament(); else renderHome(); bindMessageDismissal(); bindGuideControls(); }
+
+        const loaded = core.readTournamentStore(localStorage);
+        if (loaded.ok) state.tournaments = loaded.tournaments;
+        else state.message = { type: 'error', issue: loaded.issue };
+        try { state.guideSeen = localStorage.getItem(core.guideSeenStorageKey) === 'true'; } catch { state.guideSeen = false; }
+        state.guideOpen = loaded.ok && core.shouldAutoOpenGuide({ hasSeenGuide: state.guideSeen, tournamentCount: state.tournaments.length });
+        document.addEventListener('keydown', (event) => { if (event.key === 'Escape') { if (state.guideOpen) closeGuide(); else if (state.message?.type === 'error') dismissMessage(); } });
+        render();
+      })();
+    </script>
+  </body>
+</html>
